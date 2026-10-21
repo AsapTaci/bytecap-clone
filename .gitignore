@@ -39,3 +39,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# bytecap pipeline runtime data (uploads, downloaded videos, transcripts, job status)
+/.data/
+# generated clips (large binary output, regenerated per job)
+/public/generated/

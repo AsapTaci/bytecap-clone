@@ -1,36 +1,94 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Bytecap clone
 
-## Getting Started
+A working clone of [bytecap.io](https://www.bytecap.io) — an AI tool that turns long videos into
+short, vertical, captioned clips for TikTok/Reels/Shorts. This isn't just a UI mockup: it's a real
+pipeline that downloads a video, transcribes it, has Claude pick the best moments, and renders
+actual vertical clips with face-tracked reframing and burned-in animated captions.
 
-First, run the development server:
+## What it does
+
+- **Paste a YouTube link or upload a video** from the homepage or the dashboard (`/workspace`).
+- **Real AI pipeline**: yt-dlp downloads the video → faster-whisper transcribes it locally →
+  Claude picks the best 15–75s moments and scores them (hook/payoff/curiosity/pacing/standalone) →
+  each moment is cut, reframed to 9:16 with face/active-speaker tracking, and gets burned-in
+  word-by-word animated captions.
+- **A dashboard** (`/workspace`) listing all your generated projects, matching the real bytecap.io
+  app you get after logging in.
+- **Edit clips with Claude**: on the results page, describe a change in plain language ("shorten
+  the start by 3 seconds", "change the title", "make the captions blue") and Claude re-renders the
+  clip accordingly.
+- **Choice of Claude auth** (`/workspace/settings`): use your existing Claude Code subscription
+  (no extra cost) or a separate Anthropic API key.
+
+## Requirements
+
+- Node.js 20+ and npm
+- Python 3.10+
+- [ffmpeg](https://ffmpeg.org/) (`brew install ffmpeg` on macOS)
+- Either Claude Code installed and logged in (`claude` on your PATH), **or** an
+  [Anthropic API key](https://console.anthropic.com/)
+
+## Quick start
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+./start.sh
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+This checks/installs everything (Python packages, Node packages, ffmpeg) and opens
+`http://localhost:3500/workspace` in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Manual setup
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm install
+pip3 install -r pipeline/requirements.txt
+npm run dev -- -p 3500
+```
 
-## Learn More
+Then open `http://localhost:3500`.
 
-To learn more about Next.js, take a look at the following resources:
+### Claude credentials
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Go to **Settings** in the sidebar and pick one:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- **My Claude subscription** — uses the `claude` CLI already on your machine (Claude Code),
+  authenticated with your existing subscription. No separate billing.
+- **Anthropic API key** — add a line to `.env.local`:
+  ```
+  BYTECAP_API_KEY=sk-ant-...
+  ```
 
-## Deploy on Vercel
+Either way, click "Verifica connessione" on the Settings page to confirm it works.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Project structure
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+app/                    Next.js App Router pages & API routes
+  page.tsx               marketing homepage (bytecap.io clone)
+  workspace/              dashboard (projects list, settings, ...)
+  studio/[id]/             clip results page ("Your Clips")
+  api/jobs/                job creation/status/listing
+  api/jobs/[id]/clips/[clipId]/edit/   AI-powered clip editing
+  api/settings/            Claude auth mode (subscription vs API key)
+components/sites/bytecap/  React components (homepage + dashboard UI)
+lib/
+  pipeline.ts              job orchestration (download → transcribe → analyze → render)
+  claude.ts                moment-picking prompt
+  claude-client.ts          unified Claude call (API key or `claude -p` subscription)
+  settings.ts               persisted app settings
+pipeline/                  Python scripts (the actual video processing)
+  download.py               yt-dlp
+  transcribe.py              faster-whisper
+  render_clip.py              ffmpeg cut + face-tracked reframe + burned-in captions
+public/sites/bytecap/      cloned marketing-site assets
+.data/                     runtime state (jobs, uploads, settings) — not committed
+public/generated/          rendered clips — not committed
+```
+
+## Notes
+
+- This is a personal local tool, not a multi-tenant SaaS: `/workspace` has no login.
+- A few dashboard sidebar sections (Automations, Calendar, Analytics, Thumbnails, Assets, Social
+  accounts) are placeholder pages — only the core clipping flow and Settings are fully wired up.
+- Publishing directly to social platforms isn't implemented (would need OAuth apps per platform).
+- Not affiliated with or endorsed by Bytecap. Built for personal/educational use.
